@@ -1,6 +1,14 @@
-# index-file
+# **index-file**
+
 trabalho algoritmos e estrutura de dados II
 
-## manual
-extrair dataset.zip na pasta /dataset
-o formato esperado é /dataset/jewelry.csv
+### **manual**
+
+1) extrair _dataset.zip_ na pasta _/dataset_ - o formato esperado é _/dataset/jewelry.csv_
+
+2) execute o programa com o comando:
+
+```python
+python .\src\main.py
+```
+
