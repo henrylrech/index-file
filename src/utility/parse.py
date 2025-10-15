@@ -17,3 +17,11 @@ def to_int(value):
         return x
     except Exception:
         return 0
+    
+def to_str(value):
+    try:
+        if value is None or (isinstance(value, float) and math.isnan(value)):
+            return ""
+        return str(value)
+    except Exception:
+        return ""
