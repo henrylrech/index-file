@@ -1,5 +1,6 @@
 from classes.enums import Entry
-import file_management as fm
+import handlers as fm
+from utility.userinput import choose_entry_type
 
 def _print_options():
     print("<--------------------------------< Menu >-------------------------------->")
@@ -7,7 +8,9 @@ def _print_options():
     print("2 - Construir arquivos ordenados")
     print("3 - Construir índices")
     print("4 - Leitura de arquivos binários")
-    print("5 - Pesquisa de pedidos por ID (usando índice)")
+    print("5 - Pesquisa de pedidos/produtos por ID")
+    print("6 - Remover registro lógicamente")
+    print("7 - Inserir registro")
     print("0 - Sair")
     print("<------------------------------------------------------------------------>")
     print("Escolha uma opção:")
@@ -36,15 +39,15 @@ def menu():
         elif choice == '2':
             fm.order_files()
         elif choice == '3':
-            every_n = input("Criar índice a cada quantos registros? (pressione Enter para padrão 10): ")
+            every_n = input("Criar índice a cada quantos registros? (pressione Enter para padrão 500): ")
             if every_n.strip() == '':
-                every_n = 10
+                every_n = 500
             else:
                 try:
                     every_n = int(every_n)
                 except ValueError:
-                    print("Entrada inválida. Usando valor padrão 10.")
-                    every_n = 10
+                    print("Entrada inválida. Usando valor padrão 500.")
+                    every_n = 500
 
             fm.build_indexes(every_n)
         elif choice == '4':
@@ -63,15 +66,71 @@ Escolha uma opção:
                 continue
             fm.read_entire_file(file_id)
         elif choice == '5':
-            order_id = input("Digite o ID do pedido a ser pesquisado (pressione Enter para voltar ao menu): ")
-            if order_id.strip() == '':
+            entry_type = choose_entry_type()
+
+            if not entry_type:
                 continue
-            try:
-                order_id = int(order_id)
-            except ValueError:
-                print("ID inválido. Deve ser um número inteiro.")
+
+            match entry_type:
+                case Entry.ORDERENTRY:
+                    order_id = input("Digite o ID do pedido a ser pesquisado (pressione Enter para voltar ao menu): ")
+                    if order_id.strip() == '':
+                        continue
+                    try:
+                        order_id = int(order_id)
+                    except ValueError:
+                        print("ID inválido. Deve ser um número inteiro.")
+                        continue
+                    fm.search(Entry.ORDERENTRY, order_id)
+                case Entry.PRODUCTENTRY:
+                    product_id = input("Digite o ID do produto a ser pesquisado (pressione Enter para voltar ao menu): ")
+                    if product_id.strip() == '':
+                        continue
+                    try:
+                        product_id = int(product_id)
+                    except ValueError:
+                        print("ID inválido. Deve ser um número inteiro.")
+                        continue
+                    fm.search(Entry.PRODUCTENTRY, product_id)
+
+        elif choice == '6':
+            entry_type = choose_entry_type()
+
+            if not entry_type:
                 continue
-            fm.search(Entry.ORDERENTRY, order_id)
+
+            match entry_type:
+                case Entry.ORDERENTRY:
+                    order_id = input("Digite o ID do pedido a ser removido (pressione Enter para voltar ao menu): ")
+                    if order_id.strip() == '':
+                        continue
+                    try:
+                        order_id = int(order_id)
+                    except ValueError:
+                        print("ID inválido. Deve ser um número inteiro.")
+                        continue
+                    fm.remove_logical(Entry.ORDERENTRY, order_id)
+                case Entry.PRODUCTENTRY:
+                    product_id = input("Digite o ID do produto a ser removido (pressione Enter para voltar ao menu): ")
+                    if product_id.strip() == '':
+                        continue
+                    try:
+                        product_id = int(product_id)
+                    except ValueError:
+                        print("ID inválido. Deve ser um número inteiro.")
+                        continue
+                    fm.remove_logical(Entry.PRODUCTENTRY, product_id)
+        elif choice == '7':
+            entry_type = choose_entry_type()
+
+            if not entry_type:
+                continue
+
+            match entry_type:
+                case Entry.ORDERENTRY:
+                    fm.insert_order()
+                case Entry.PRODUCTENTRY:
+                    fm.insert_product()
         else:
             print("Opção inválida. Tente novamente.")
     
