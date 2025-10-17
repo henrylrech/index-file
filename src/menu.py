@@ -6,7 +6,7 @@ def _print_options():
     print("<--------------------------------< Menu >-------------------------------->")
     print("1 - Construir arquivos não ordenados (Leitura do dataset .csv)")
     print("2 - Construir arquivos ordenados")
-    print("3 - Construir índices")
+    print("3 - Construir / Reconstruir índices")
     print("4 - Leitura de arquivos binários")
     print("5 - Pesquisa de pedidos/produtos por ID")
     print("6 - Remover registro lógicamente")
