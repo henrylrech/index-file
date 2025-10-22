@@ -277,6 +277,7 @@ def search(entry, key):
         
     return None, None
 
+#6
 def remove_logical(entry_type, key):
 
     dirname = os.path.dirname(__file__)
@@ -310,6 +311,7 @@ def remove_logical(entry_type, key):
     
     print(f"Registro com chave {key}, endereço {address} marcado como inativo com sucesso.")
 
+#7
 def insert_order():
 
     order_id = 0
@@ -338,7 +340,8 @@ def insert_order():
     )
 
     insert(Entry.ORDERENTRY, entry)
-    
+
+#7  
 def insert_product():
     
     product_id = 0

@@ -11,7 +11,7 @@ class OrderEntry:
         self.active = active
 
     def as_binary(self):
-        # 'q' = signed 64-bit integer, 'd' = 64-bit float
+        # 'q' = signed 64-bit integer, 'd' = 64-bit float, '?' = boolean
         data = struct.pack('qqqdq?', 
                            self.order_id, 
                            self.product_id, 

@@ -15,7 +15,7 @@ class ProductEntry:
         metal_bytes = self.metal.encode('utf-8')[:20].ljust(20, b'\x00')
         gem_bytes = self.gem.encode('utf-8')[:20].ljust(20, b'\x00')
 
-        # 'q' = signed 64-bit integer, 'd' = 64-bit float
+        # 'q' = signed 64-bit integer, '20s' = 20 characters string, '?' = boolean
         data = struct.pack('q20s20s20s?', 
                            self.product_id, 
                            jewellery_bytes, 
