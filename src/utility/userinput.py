@@ -1,8 +1,8 @@
 from classes.enums import Entry
 
-def choose_entry_type():
-    entry_type = input("""
-Qual tipo de entrada deseja pesquisar?
+def choose_entry_type(question: str = None) -> Entry | None:
+    entry_type = input(f"""
+{question if question else 'Escolha o tipo de entrada:'}
 1 - Pedido
 2 - Produto
 (pressione Enter para voltar ao menu)

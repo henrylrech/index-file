@@ -22,8 +22,9 @@ class OrderEntry:
         
         return data + b'\n'  # adiciona o byte de nova linha
     
-    def as_index_entry(self, address):
-        return IndexEntry(self.order_id, address)
+    def as_index_entry(self, address, key = None):
+        pk = self.order_id if key is None else key
+        return IndexEntry(pk, address)
 
     def as_str(self):
         return f"Pedido: {self.order_id}, Produto: {self.product_id}, Qtd: {self.quantity}, Preço: {self.price}, Usuário: {self.user_id}, Ativo: {self.active}"

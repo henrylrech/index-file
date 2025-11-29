@@ -1,5 +1,6 @@
 import struct
 from classes.entries.index_entry import IndexEntry
+from utility.cipher import CaesarCipher as Cipher
 
 class ProductEntry:
 
@@ -13,7 +14,8 @@ class ProductEntry:
     def as_binary(self):
         jewellery_bytes = self.jewellery_type.encode('utf-8')[:20].ljust(20, b'\x00')
         metal_bytes = self.metal.encode('utf-8')[:20].ljust(20, b'\x00')
-        gem_bytes = self.gem.encode('utf-8')[:20].ljust(20, b'\x00')
+        cipher_gem = Cipher.encode(self.gem)
+        gem_bytes = cipher_gem.encode('utf-8')[:20].ljust(20, b'\x00')
 
         # 'q' = signed 64-bit integer, '20s' = 20 characters string, '?' = boolean
         data = struct.pack('q20s20s20s?', 
@@ -37,7 +39,7 @@ class ProductEntry:
         jewellery_type = jewellery_bytes.rstrip(b'\x00').decode('utf-8')
         metal = metal_bytes.rstrip(b'\x00').decode('utf-8')
         gem = gem_bytes.rstrip(b'\x00').decode('utf-8')
-        return cls(product_id, jewellery_type, metal, gem, active)
+        return cls(product_id, jewellery_type, metal, Cipher.decode(gem), active)
     
     @staticmethod
     def get_size():

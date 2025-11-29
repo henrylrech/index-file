@@ -1,3 +1,4 @@
+from collections import deque
 import os
 import pandas as pd
 from classes.enums import Entry
@@ -6,6 +7,8 @@ from classes.entries.order_entry import OrderEntry
 from classes.entries.product_entry import ProductEntry
 from classes.entries.index_entry import IndexEntry
 from file_management import get_entry, insert, search_index, search_sequential_file
+from utility.bplustree import BPlusTree
+from utility.hash import HashIndex
 from utility.read_bin import read_bin_file
 from utility.timer import Timer
 from utility.sort import quicksort
@@ -131,9 +134,7 @@ def order_files():
             #print(vars(product_entry))
 
     print(f"Ordenando {len(product_entries)} entradas de produtos... (Quicksort)")
-    print(product_entries[0].product_id, product_entries[-1].product_id)
     product_entries = quicksort(product_entries, "product_id")
-    print(product_entries[0].product_id, product_entries[-1].product_id)
     print("Entradas de produtos ordenadas.")
 
     print("Escrvendo arquivo de produtos ordenados...")
@@ -153,6 +154,7 @@ def build_indexes(every_n=500):
     orders_path = os.path.join(bin_path, 'ordered', 'orders.bin')
     products_path = os.path.join(bin_path, 'ordered', 'products.bin')
 
+    orders_user_index_path = os.path.join(bin_path, 'indexes', 'orders_user_index.bin')
     orders_index_path = os.path.join(bin_path, 'indexes', 'orders_index.bin')
     products_index_path = os.path.join(bin_path, 'indexes', 'products_index.bin')
     os.makedirs(os.path.dirname(orders_index_path), exist_ok=True)
@@ -184,6 +186,32 @@ def build_indexes(every_n=500):
                 index_entry = order_entry.as_index_entry(orders_address - record_size).as_binary()
                 index_file.write(index_entry)
 
+    print(f"Índice de pedidos criado com sucesso. Duração: {timer.seconds()} segundos.")
+    timer.reset()
+
+    #indice EXAUSTIVO de usuarios do pedido
+    orders_count = 0
+    orders_address = 0
+    with open(orders_path, "rb") as f:
+        with open(orders_user_index_path, "wb") as index_file:
+            while True:
+                data = f.read(OrderEntry.get_size())
+                if not data:
+                    break
+
+                f.read(1) # newline byte
+
+                record_size = OrderEntry.get_size() + 1
+                orders_address += record_size
+
+                order_entry = OrderEntry.from_binary(data)
+                index_entry = order_entry.as_index_entry(orders_address - record_size, order_entry.user_id).as_binary()
+                index_file.write(index_entry)
+
+
+    print(f"Índice exaustivo de usuários de pedidos criado com sucesso. Duração: {timer.seconds()} segundos.")
+    timer.reset()
+
     products_count = 0
     products_address = 0
     product_entry_size = ProductEntry.get_size()
@@ -207,7 +235,10 @@ def build_indexes(every_n=500):
                 index_entry = product_entry.as_index_entry(products_address - record_size).as_binary()
                 index_file.write(index_entry)
 
-    print(f"Criação de índices finalizada com sucesso. Duração: {timer.seconds()} segundos.")
+    print(f"Índice de produtos criado com sucesso. Duração: {timer.seconds()} segundos.")
+    timer.reset()
+
+    print(f"Criação de índices finalizada com sucesso.")
         
 #4 
 def read_entire_file(file_id):
@@ -243,6 +274,7 @@ def read_entire_file(file_id):
     
 #5
 def search(entry, key):
+    timer = Timer()
 
     dirname = os.path.dirname(__file__)
     bin_path = os.path.join(dirname, '..', 'bin')
@@ -264,7 +296,8 @@ def search(entry, key):
         entry = get_entry(file_path, entry, found_address)
         if entry:
             print(entry.as_str())
-            return entry, found_address
+            print(f"Duração total da busca: {timer.seconds()} segundos.")
+            return entry, address
 
     else:
         print("Registro não encontrado no índice.")
@@ -273,6 +306,7 @@ def search(entry, key):
         entry, address = search_sequential_file(file_path, entry, key, last_address)
         if entry:
             print(entry.as_str())
+            print(f"Duração total da busca: {timer.seconds()} segundos.")
             return entry, address
         
     return None, None
@@ -367,5 +401,197 @@ def insert_product():
 
     insert(Entry.PRODUCTENTRY, entry)
 
+orders_bplus_tree_index = None
+products_bplus_tree_index = None
+#8
+def create_bplus_tree_index(entry_type):
 
-        
+    timer = Timer()
+
+    dirname = os.path.dirname(__file__)
+    bin_path = os.path.join(dirname, '..', 'bin')
+
+    file_path = ''
+    match entry_type:
+        case Entry.ORDERENTRY:
+            DataEntry = OrderEntry
+            primary_key = 'order_id'
+            file_path = os.path.join(bin_path, 'ordered', 'orders.bin')
+        case Entry.PRODUCTENTRY:
+            DataEntry = ProductEntry
+            primary_key = 'product_id'
+            file_path = os.path.join(bin_path, 'ordered', 'products.bin')
+        case _:
+            print("Tipo de entrada inválido para criação de índice b+tree.")
+            return
+    
+    if not os.path.exists(file_path):
+        print("Arquivos ordenados não encontrados. Por favor, crie-os primeiro.")
+        return False
+
+    print(f"Criando índice...")
+
+    t = BPlusTree(order=4)  # ajustar order conforme desejar
+
+    address = 0
+    data_entry_size = DataEntry.get_size()
+    with open(file_path, "rb") as df:
+        while True:
+            data = df.read(data_entry_size)
+            if not data:
+                break
+
+            df.read(1) # newline byte
+
+            record_size = data_entry_size + 1
+
+            line_entry = DataEntry.from_binary(data)
+            # extrair chave primária dinamicamente
+            key = getattr(line_entry, primary_key)
+            t.insert(key, address)
+            address += record_size
+
+    match entry_type:
+        case Entry.ORDERENTRY:
+            global orders_bplus_tree_index
+            orders_bplus_tree_index = t
+
+        case Entry.PRODUCTENTRY:
+            global products_bplus_tree_index
+            products_bplus_tree_index = t
+            
+    print(f"Índice b+tree criado com sucesso. Duração: {timer.seconds()} segundos.")
+
+#9
+def search_bplus_tree_index(entry_type, key):
+    timer = Timer()
+    global orders_bplus_tree_index
+    global products_bplus_tree_index
+
+    t = None
+    file_path = ''
+    match entry_type:
+        case Entry.ORDERENTRY:
+            t = orders_bplus_tree_index
+            file_path = os.path.join(os.path.dirname(__file__), '..', 'bin', 'ordered', 'orders.bin')
+        case Entry.PRODUCTENTRY:
+            t = products_bplus_tree_index
+            file_path = os.path.join(os.path.dirname(__file__), '..', 'bin', 'ordered', 'products.bin')
+        case _:
+            print("Tipo de entrada inválido para busca em índice b+tree.")
+            return None, None
+
+    if t is None:
+        print("Índice b+tree não foi criado para este tipo de entrada.")
+        return None, None
+
+    found, address = t.search_index(key);
+    if found is not None:
+        print(f"Chave {key} encontrada na B+Tree com endereço {address}. Duração: {timer.seconds()} segundos.")
+        entry = get_entry(file_path, entry_type, address)
+        if entry:
+            print(entry.as_str())
+        return found, address
+    else:
+        print(f"Chave {key} não encontrada na B+Tree, endereço mais próximo retornado {address}")
+
+#10
+def search_orders_by_user_id(user):
+    timer = Timer()
+
+    dirname = os.path.dirname(__file__)
+    bin_path = os.path.join(dirname, '..', 'bin')
+    orders_user_index_path = os.path.join(bin_path, 'indexes', 'orders_user_index.bin')
+
+    if not os.path.exists(orders_user_index_path):
+        print("Índice exaustivo de usuários de pedidos não encontrado. Por favor, crie-o primeiro.")
+        return False
+
+    print(f"Pesquisando pedidos para o usuário ID {user}...")
+
+    found_addresses = []
+    entry_size = IndexEntry.get_size()
+    with open(orders_user_index_path, "rb") as f:
+        while True:
+            data = f.read(entry_size)
+            if not data:
+                break
+
+            f.read(1) # newline byte
+
+            index_entry = IndexEntry.from_binary(data)
+            if index_entry.primary_id == user:
+                found_addresses.append(index_entry.address)
+
+    if not found_addresses:
+        print(f"Nenhum pedido encontrado para o usuário ID {user}.")
+        return False
+
+    print(f"{len(found_addresses)} pedido(s) encontrado(s) para o usuário ID {user}. Duração: {timer.seconds()} segundos.")
+
+    orders_path = os.path.join(bin_path, 'ordered', 'orders.bin')
+    for addr in found_addresses:
+        entry = get_entry(orders_path, Entry.ORDERENTRY, addr)
+        if entry:
+            print(entry.as_str())
+
+    return True
+
+#11
+orders_hash_index = None
+def build_orders_user_id_hash_index(size=4096):
+
+    timer = Timer()
+
+    dirname = os.path.dirname(__file__)
+    bin_path = os.path.join(dirname, '..', 'bin')
+
+    file_path = ''
+    file_path = os.path.join(bin_path, 'ordered', 'orders.bin')
+    
+    if not os.path.exists(file_path):
+        print("Arquivos ordenados não encontrados. Por favor, crie-os primeiro.")
+        return False
+
+    print(f"Criando índice...")
+
+    h = HashIndex(size)
+
+    address = 0
+    order_entry_size = OrderEntry.get_size()
+    with open(file_path, "rb") as df:
+        while True:
+            data = df.read(order_entry_size)
+            if not data:
+                break
+
+            df.read(1) # newline byte
+
+            record_size = order_entry_size + 1
+
+            order_entry = OrderEntry.from_binary(data)
+            h.insert(order_entry.user_id, address)
+            address += record_size
+
+    global orders_hash_index
+    orders_hash_index = h
+            
+    print(f"Índice hash criado com sucesso. Duração: {timer.seconds()} segundos.")
+
+#12
+def search_orders_by_user_id_hash(user):
+    timer = Timer()
+
+    dirname = os.path.dirname(__file__)
+    bin_path = os.path.join(dirname, '..', 'bin')
+    orders_path = os.path.join(bin_path, 'ordered', 'orders.bin')
+
+    found, address = orders_hash_index.search(user)
+    if found:
+        print(f"Usuário {user} encontrado na tabela hash com endereço {address}. Duração: {timer.seconds()} segundos.")
+        entry = get_entry(orders_path, Entry.ORDERENTRY, address)
+        if entry:
+            print(entry.as_str())
+        return found, address
+    else:
+        print(f"Usuário {user} não encontrado.")

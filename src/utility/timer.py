@@ -9,3 +9,7 @@ class Timer:
             return ""
         elapsed_time = time.time() - self.start_time
         return f"{elapsed_time:.2f}"
+    
+    def reset(self):
+        """Reinicia o timer para zero."""
+        self.start_time = time.time()

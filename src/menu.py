@@ -6,11 +6,16 @@ def _print_options():
     print("<--------------------------------< Menu >-------------------------------->")
     print("1 - Construir arquivos não ordenados (Leitura do dataset .csv)")
     print("2 - Construir arquivos ordenados")
-    print("3 - Construir / Reconstruir índices")
+    print("3 - Construir / Reconstruir índices em disco")
     print("4 - Leitura de arquivos binários")
     print("5 - Pesquisa de pedidos/produtos por ID")
     print("6 - Remover registro lógicamente")
     print("7 - Inserir registro")
+    print("8 - Construir / Reconstruir índice B+ Tree")
+    print("9 - Pesquisa em índice B+ Tree")
+    print("10 - Consulta índice exaustivo de usuários de pedidos")
+    print("11 - Construir / Reconstruir índice hash de usuários de pedidos")
+    print("12 - Consulta índice hash de usuários de pedidos")
     print("0 - Sair")
     print("<------------------------------------------------------------------------>")
     print("Escolha uma opção:")
@@ -35,7 +40,6 @@ def menu():
                     chunk_size = 50
 
             fm.write_unordered_files(chunk_size)
-
         elif choice == '2':
             fm.order_files()
         elif choice == '3':
@@ -66,7 +70,7 @@ Escolha uma opção:
                 continue
             fm.read_entire_file(file_id)
         elif choice == '5':
-            entry_type = choose_entry_type()
+            entry_type = choose_entry_type("Qual tipo de entrada deseja pesquisar?")
 
             if not entry_type:
                 continue
@@ -92,9 +96,8 @@ Escolha uma opção:
                         print("ID inválido. Deve ser um número inteiro.")
                         continue
                     fm.search(Entry.PRODUCTENTRY, product_id)
-
         elif choice == '6':
-            entry_type = choose_entry_type()
+            entry_type = choose_entry_type("Qual tipo de entrada deseja remover?")
 
             if not entry_type:
                 continue
@@ -121,7 +124,7 @@ Escolha uma opção:
                         continue
                     fm.remove_logical(Entry.PRODUCTENTRY, product_id)
         elif choice == '7':
-            entry_type = choose_entry_type()
+            entry_type = choose_entry_type("Qual tipo de entrada deseja inserir?")
 
             if not entry_type:
                 continue
@@ -131,6 +134,62 @@ Escolha uma opção:
                     fm.insert_order()
                 case Entry.PRODUCTENTRY:
                     fm.insert_product()
+        elif choice == '8':
+            entry_type = choose_entry_type("Qual tipo de entrada deseja criar o índice b+tree?")
+
+            if not entry_type:
+                continue
+
+            fm.create_bplus_tree_index(entry_type)
+        elif choice == '9':
+            entry_type = choose_entry_type("Qual tipo de entrada deseja pesquisar?")
+
+            if not entry_type:
+                continue
+
+            match entry_type:
+                case Entry.ORDERENTRY:
+                    order_id = input("Digite o ID do pedido a ser pesquisado (pressione Enter para voltar ao menu): ")
+                    if order_id.strip() == '':
+                        continue
+                    try:
+                        order_id = int(order_id)
+                    except ValueError:
+                        print("ID inválido. Deve ser um número inteiro.")
+                        continue
+                    fm.search_bplus_tree_index(Entry.ORDERENTRY, order_id)
+                case Entry.PRODUCTENTRY:
+                    product_id = input("Digite o ID do produto a ser pesquisado (pressione Enter para voltar ao menu): ")
+                    if product_id.strip() == '':
+                        continue
+                    try:
+                        product_id = int(product_id)
+                    except ValueError:
+                        print("ID inválido. Deve ser um número inteiro.")
+                        continue
+                    fm.search_bplus_tree_index(Entry.PRODUCTENTRY, product_id)
+        elif choice == '10':
+            user_id = input("Digite o ID do usuário para consultar seus pedidos (pressione Enter para voltar ao menu): ")
+            if user_id.strip() == '':
+                continue
+            try:
+                user_id = int(user_id)
+            except ValueError:
+                print("ID inválido. Deve ser um número inteiro.")
+                continue
+            fm.search_orders_by_user_id(user_id)
+        elif choice == '11':
+            fm.build_orders_user_id_hash_index()
+        elif choice == '12':
+            user_id = input("Digite o ID do usuário para consultar seus pedidos (pressione Enter para voltar ao menu): ")
+            if user_id.strip() == '':
+                continue
+            try:
+                user_id = int(user_id)
+            except ValueError:
+                print("ID inválido. Deve ser um número inteiro.")
+                continue
+            fm.search_orders_by_user_id_hash(user_id)
         else:
             print("Opção inválida. Tente novamente.")
     
