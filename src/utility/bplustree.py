@@ -15,10 +15,10 @@ class BPlusNode:
             return f"Int(keys={self.keys})"
 
 class BPlusTree:
-    def __init__(self, order=4):
-        if order < 3:
+    def __init__(self, order=3):
+        if order < 2:
             raise ValueError("order mínimo é 3")
-        self.order = order*2
+        self.order = order
         self.root = BPlusNode(leaf=True)
 
     def _find_leaf(self, key, path=None):
