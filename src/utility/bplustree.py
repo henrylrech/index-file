@@ -18,7 +18,7 @@ class BPlusTree:
     def __init__(self, order=4):
         if order < 3:
             raise ValueError("order mínimo é 3")
-        self.order = order
+        self.order = order*2
         self.root = BPlusNode(leaf=True)
 
     def _find_leaf(self, key, path=None):

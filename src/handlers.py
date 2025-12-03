@@ -431,7 +431,7 @@ def create_bplus_tree_index(entry_type):
 
     print(f"Criando índice...")
 
-    t = BPlusTree(order=4)  # ajustar order conforme desejar
+    t = BPlusTree(order=32) 
 
     address = 0
     data_entry_size = DataEntry.get_size()
